@@ -19,6 +19,19 @@ func main() {
 	}
 
 	for id, name := range courses {
-		fmt.Println(id, name)
+		fmt.Println(id, "-", name)
+	}
+
+	name, exists := courses[1209]
+
+	if exists {
+		fmt.Println(name)
+	}
+
+	for id, name := range courses {
+		if name == "GO" {
+			fmt.Println(id)
+			break
+		}
 	}
 }
