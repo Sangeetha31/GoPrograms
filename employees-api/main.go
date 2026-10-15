@@ -72,6 +72,56 @@ func getAllData(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
+func addEmployee(db *sql.DB) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		var employee Employee
+
+		if err := ctx.ShouldBindJSON(&employee); err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid Request Body",
+			})
+			return
+		}
+		if employee.Name == "" || employee.Designation == "" || employee.Age <= 0 || employee.Salary <= 0 {
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid Data",
+			})
+			return
+		}
+		cont, cancel := context.WithTimeout(
+			ctx.Request.Context(), 5*time.Second,
+		)
+
+		defer cancel()
+
+		query := `
+		INSERT INTO employees(name,age,designation,salary) VALUES(?,?,?,?)
+		`
+		result, err := db.ExecContext(
+			cont, query,
+			employee.Name, employee.Age, employee.Designation, employee.Salary)
+		if err != nil {
+			log.Printf("Error: Inserting Data Into Employees: %v", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"error": "failed to Insert Employee....",
+			})
+			return
+		}
+
+		id, err := result.LastInsertId()
+		if err != nil {
+			log.Printf("Error: Getting Generated Employee ID: %v", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"error": "failed to Insert Employee....",
+			})
+			return
+		}
+		employee.ID = int(id)
+
+		ctx.JSON(http.StatusCreated, employee)
+	}
+}
+
 func main() {
 
 	db, err := connectDB()
@@ -85,6 +135,8 @@ func main() {
 	router := gin.Default()
 
 	router.GET("/employees", getAllData(db))
+
+	router.POST("/employees", addEmployee(db))
 
 	log.Println("Server is Up and Running on: 8080")
 
