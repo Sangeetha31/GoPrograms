@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -122,6 +123,71 @@ func addEmployee(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
+func updateEmployee(db *sql.DB) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		id := ctx.Param("id")
+		var employee Employee
+		if err := ctx.ShouldBindJSON(&employee); err != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"error": "invalid data",
+			})
+			return
+		}
+
+		if employee.Name == "" || employee.Designation == "" || employee.Age <= 0 || employee.Salary <= 0 {
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"error": "Invalid Data",
+			})
+			return
+		}
+
+		cont, cancel := context.WithTimeout(
+			ctx.Request.Context(), 5*time.Second,
+		)
+
+		defer cancel()
+
+		query := `
+			UPDATE employees set name=?,age=?,designation=?, salary=? WHERE id=?
+		`
+		result, err := db.ExecContext(
+			cont, query, employee.Name, employee.Age, employee.Designation, employee.Salary, id,
+		)
+
+
+	if employee.Name==""||employee.Designation==""||employee.Age<=0||employee.Salary<=0
+
+	if rowsAffected == 0 {
+		var exists bool
+
+		err := db.QueryRowContext(cont, "select exists(select 1 from employees where id=?)", id).Scan(&exists)
+
+		if err != nil {
+			log.Printf("Error: checking employee: %v", err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to Verify Employee",
+			})
+			return
+		}
+
+		if !exists {
+			ctx.JSON(http.StatusNotFound, gin.H{
+				"error": "Employee Not Found with Given Details",
+			})
+			return
+		}
+	}
+
+	}
+}
+
+func deleteEmployee(db *sql.DB) gin.HandlerFunc{
+	return func(ctx *gin.Context) {}
+
+	defer cancel()
+
+	query:=``
+}
 func main() {
 
 	db, err := connectDB()
@@ -135,8 +201,8 @@ func main() {
 	router := gin.Default()
 
 	router.GET("/employees", getAllData(db))
-
 	router.POST("/employees", addEmployee(db))
+	router.PUT("/employees/:id", updateEmployee(db))
 
 	log.Println("Server is Up and Running on: 8080")
 
